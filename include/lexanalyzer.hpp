@@ -63,6 +63,16 @@ Ent LexAnalyzer<Ent,Transm>::GetToken() {
   if(transmachine.IsErrorSt())
     err_exit(transmachine.GetTStr());
 
+  //文件读取结束，无额外字符进行状态转换
+  if(srcfhandler.over()) {
+    //文件处理结束,设置标志
+    over = true;
+    if(transmachine.IsInitial())
+      return transmachine.OverEnt();
+    //传入一个空格进行状态转换，保证状态转换完成
+    transmachine.StateTrans(' ');
+  }
+
   //如果达到终止状态，输出符号项
   if(transmachine.IsFinalSt()) {
     //是否需要回退字符
@@ -73,21 +83,8 @@ Ent LexAnalyzer<Ent,Transm>::GetToken() {
     //重置状态转换机
     transmachine.Reset();
   }
-
-  //文件读取结束，无额外字符进行状态转换
-  else if(srcfhandler.over()) {
-    //文件处理结束,设置标志
-    over = true;
-    if(transmachine.IsInitial())
-      return transmachine.OverEnt();
-    //传入一个空格进行状态转换，保证状态转换完成
-    transmachine.StateTrans(' ');
-    //如果达到终止状态，输出符号项
-    if(transmachine.IsFinalSt())
-      ent = transmachine.GetEnt();
-    //否则，表示出现了错误
-    err_exit(transmachine.GetTStr());
-  }
+  //否则，表示出现了错误
+  else err_exit(transmachine.GetTStr());
 
   return ent;
 }

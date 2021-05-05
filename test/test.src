@@ -9,4 +9,4 @@ begin
     read(m);
     k:=F(m);
     write(k)
-end <>>>= <  120 32434 
+end <>>>= <  120 32434
