@@ -4,6 +4,16 @@ _Pragma("once");
 #include<string>
 #include<fstream>
 
+/*  num表示缓冲区数量的指数，num = 1表示使用2个缓冲区，
+ *  num = 2 则表示使用4个缓冲区，每个缓冲区大小为4kB。
+ *  客户可自行修改BufSize的值指定缓冲区大小，也可以将其
+ *  设置为模板参数。
+ *  缓冲区使用动态分配的内存，且仅当缓冲区中需要写入内容
+ *  时才申请内存，避免申请过多内存而未使用。
+ *  多个缓冲被实现为循环缓冲的模式，因为每个缓冲区大小为
+ *  4KB，且增加缓冲区数量对性能提升不高，因此建议不要指
+ *  定过多缓冲区。默认缓冲区数量为2。
+ */
 template<int num = 1>
 class SrcFHandler {
 
@@ -17,7 +27,8 @@ class SrcFHandler {
 
     SrcFHandler(const SrcFHandler &) = delete;
 
-    SrcFHandler & operator = (const SrcFHandler &) = delete;
+    SrcFHandler & operator = \
+        (const SrcFHandler &) = delete;
 
     //回退一个字符
     void Retract();
@@ -111,6 +122,7 @@ bool SrcFHandler<num>::BufEnd(int i) const {
 template<int num>
 void SrcFHandler<num>::ReadToBuf(int i) {
     
+    buflen[i] = 0;
     //文件结束，放弃读取
     if(isend) return;
     

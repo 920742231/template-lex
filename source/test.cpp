@@ -2,7 +2,6 @@
 #include<iostream>
 #include"transtabl.hpp"
 #include"lexanalyzer.hpp"
-#include"srcfhandler.hpp"
 #include"transmachine.hpp"
 int main() {
 
