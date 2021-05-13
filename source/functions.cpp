@@ -12,7 +12,7 @@ bool is_space(char c) {
     ||(c == '\r') || (c == '\t') || (!c);
 }
 
-long t_atoi(char * const str) {
+long t_atol(char * const str) {
     int k,tmp,len;
 
     long value;
@@ -31,9 +31,8 @@ long t_atoi(char * const str) {
     return value;
 }
 
-long t_atoi(std::string const& str) {
-    const char * cstr = str.c_str();
-    return atoi(cstr);
+long t_atol(std::string const& str) {
+    return t_atol(str.c_str());
 }
 
 bool is_letter(char c) {
