@@ -4,7 +4,7 @@ INCLUDE = ../include
 vpath %.cpp $(SOURCE)
 vpath %.hpp $(INCLUDE)
 
-CPPFLAGS = -I$(INCLUDE)
+CPPFLAGS = -I$(INCLUDE) -g
 
 all : test.o functions.o transtabl.o
 

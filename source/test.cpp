@@ -1,5 +1,6 @@
 #include<string>
 #include<iostream>
+#include<algorithm>
 #include"transtabl.hpp"
 #include"lexanalyzer.hpp"
 #include"transmachine.hpp"
@@ -17,6 +18,8 @@ int main() {
 
     LexAnalyzer<SmbEnt,TransM> lexanal(sname,TransTabl::Get());
 
+    t_atol(std::string("100"));
+  /*  
     smbent.first = 0;
     while(smbent.first != TransTabl::Over) {
         smbent = lexanal.GetToken();
@@ -24,5 +27,14 @@ int main() {
         if(smbent.first == 1) delete smbent.second;
     }
 
+   // */
+  ///*
+    std::for_each(lex_iterator<SmbEnt,TransM>(lexanal),
+        lex_iterator<SmbEnt,TransM>(),
+        [&lexanal](SmbEnt & smbent) {
+            lexanal.PrintEnt(smbent);
+        }
+    );
+//*/
     return 0;
 }

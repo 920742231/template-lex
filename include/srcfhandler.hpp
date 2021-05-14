@@ -19,9 +19,10 @@ class SrcFHandler {
 
   public:
 
-    SrcFHandler(char * const);
+    SrcFHandler(const char *);
 
-    SrcFHandler(std::string const&);
+    SrcFHandler(std::string const & path) 
+    : SrcFHandler(path.c_str()) {}
 
     ~SrcFHandler();
 
@@ -84,14 +85,16 @@ class SrcFHandler {
 
 //文件流打开文件，失败则退出。
 template<int num>
-SrcFHandler<num>::SrcFHandler(char * const path)
+SrcFHandler<num>::SrcFHandler(const char * path)
 :isend(false),curbuf(0),bufpos(0),srcfile(path){
+    if(!srcfile.is_open()) err_open(path);
     //缓冲区大小为0，缓冲区空间暂不分配
     for(int i = 0;i < bufnums;++i) {
         buflen[i] = 0;
         databuf[i] = nullptr;
     }
 }
+/*
 template<int num>
 SrcFHandler<num>::SrcFHandler(std::string const & path)
 :isend(false),curbuf(0),bufpos(0),srcfile(path){
@@ -101,7 +104,7 @@ SrcFHandler<num>::SrcFHandler(std::string const & path)
         databuf[i] = nullptr;
     }
 }
-
+*/
 //释放new分配的缓冲区内存
 template<int num>
 SrcFHandler<num>::~SrcFHandler() {

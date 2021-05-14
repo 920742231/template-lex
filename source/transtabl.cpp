@@ -23,7 +23,7 @@ TransTabl::SmbEnt TransTabl::GetSmbEnt(int st,
   //当前符号是一个操作符或界符，直接返回符号编号
   switch(st) {
     case INT:   return SmbEnt(INT,
-    reinterpret_cast<std::string*>(t_atol(symbol)));
+      (std::string *)(t_atol(symbol)));
     case EQ:    return SmbEnt(EQ,NULL);      // =
     case LE:    return SmbEnt(LE,NULL);      // <=
     case NE:    return SmbEnt(NE,NULL);      // <>

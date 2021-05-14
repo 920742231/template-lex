@@ -19,7 +19,7 @@ class LexAnalyzer {
     LexAnalyzer & operator = (const LexAnalyzer &) = delete;
 
     //源文件是否处理结束
-    bool Isover() const {return srcfhandler.over();}
+    bool Isover() const {return over;}
 
     //获取下一个符号
     Ent GetToken();
@@ -88,3 +88,59 @@ Ent LexAnalyzer<Ent,Transm>::GetToken() {
 
   return ent;
 }
+
+#include<iterator>
+
+template<typename Ent,
+         typename Transm>
+class lex_iterator 
+: public std::iterator<std::input_iterator_tag,Ent> {
+
+  using lex_type = LexAnalyzer<Ent,Transm>;
+  public:
+  
+    //  空构造函数，生成迭代器的结束位置
+    lex_iterator() 
+    : lexanalyzer(0),current_ent(Ent()) {}
+
+    //  生成指定词法分析器的迭代器
+    lex_iterator(lex_type & lexanal)
+    : lexanalyzer(&lexanal) {
+      current_ent = lexanalyzer->GetToken();
+    }
+
+    //
+    lex_iterator & operator ++ () {
+      if(lexanalyzer == 0) {
+        current_ent = Ent();
+        return *this;
+      }
+      current_ent = lexanalyzer->GetToken();
+      if(lexanalyzer->Isover()) 
+        lexanalyzer = 0;
+      return *this;
+    }
+
+    lex_iterator & operator ++ (int) {
+      decltype(*this) tmp = this;
+      ++*this;
+      return this;
+    }
+  
+    Ent & operator * () {
+      return current_ent;
+    }
+
+    const lex_type * LexAddress () {
+      return lexanalyzer;
+    }
+
+    bool operator != (lex_iterator<Ent,Transm> & iter) {
+      return lexanalyzer != iter.LexAddress() \
+        || current_ent != *iter;
+    }
+  
+  private:
+    Ent current_ent;
+    lex_type * lexanalyzer;
+};
