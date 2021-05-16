@@ -22,15 +22,22 @@ class LexAnalyzer {
     bool Isover() const {return over;}
 
     //获取下一个符号
-    Ent GetToken();
+    const Ent & GetToken();
 
     //打印符号条目信息
     void PrintEnt(Ent & ent) const {
       return transmachine.PrintEnt(ent);
     }
 
+    void OutputResult(const std::string &,const std::string &);
+    void OutputResult(const char * dy,const char * err) {
+      return OutputResult(std::string(dy),std::string(err));
+    }
+
   private:
 
+    //上一个状态的二元式
+    Ent last_entry;
     //状态转换机
     Transm transmachine;
 
@@ -44,50 +51,137 @@ class LexAnalyzer {
 
 //控制状态转换机进行状态转换，识别一个符号并输出符号项
 template<class Ent,class Transm>
-Ent LexAnalyzer<Ent,Transm>::GetToken() {
+const Ent & LexAnalyzer<Ent,Transm>::GetToken() {
   
-  Ent ent;
-
   //文件处理结束，输出结束标志项
-  if(over) return transmachine.OverEnt();
-
+  if(over) {
+    last_entry = transmachine.OverEnt();
+    return last_entry;
+  };
+  transmachine.Reset();
   //除去符号开头的空白字符
   srcfhandler.IgnoreSpace();
 
   //未达到文件尾且当前状态不是结束状态，读取字符进行状态转换
-  while(!transmachine.IsFinalSt() && \
-  !srcfhandler.over() && !transmachine.IsErrorSt())
+  while(!transmachine.IsFinalSt() && !srcfhandler.over())
     transmachine.StateTrans(srcfhandler.GetChar());
   
-  //如果达到异常状态，进行处理
-  if(transmachine.IsErrorSt())
-    err_exit(transmachine.GetTStr());
-
-  //文件读取结束，无额外字符进行状态转换
-  if(srcfhandler.over()) {
-    //文件处理结束,设置标志
-    over = true;
-    if(transmachine.IsInitial())
-      return transmachine.OverEnt();
-    //传入一个空格进行状态转换，保证状态转换完成
-    transmachine.StateTrans(' ');
-  }
-
-  //如果达到终止状态，输出符号项
+  
   if(transmachine.IsFinalSt()) {
-    //是否需要回退字符
-    if(transmachine.Retract())
-      srcfhandler.Retract();
-    
-    ent = transmachine.GetEnt();
-    //重置状态转换机
-    transmachine.Reset();
+    //如果达到异常状态，进行处理
+    if(transmachine.IsErrorSt()) {
+      last_entry = transmachine.ErrorEnt();
+      if(transmachine.Retract()) srcfhandler.Retract();
+    }
+    else {
+      if(transmachine.Retract()) srcfhandler.Retract();
+      last_entry = transmachine.GetEnt();
+    }
   }
-  //否则，表示出现了错误
-  else err_exit(transmachine.GetTStr());
+  //file end
+  else {
+    if(transmachine.IsInitial()) {
+      over = true;
+      last_entry = transmachine.OverEnt();
+    }
+    else {
+      if(!transmachine.IsFinalSt()) 
+        transmachine.StateTrans(' ');
+      if(transmachine.IsErrorSt())
+        last_entry = transmachine.ErrorEnt();
+      else {
+        transmachine.Retract();
+        last_entry = transmachine.GetEnt();
+      }
+    }
+  }
 
-  return ent;
+  return last_entry;
 }
+
+template<class Ent,class Transm> class lex_iterator;
+
+class OFileStream {
+  public:
+    OFileStream() = default;
+    OFileStream(const std::string & path) 
+    : file_stream(path,std::ios::out) {}
+    ~OFileStream() {
+      if(file_stream.is_open()) file_stream.close();
+    }
+    std::fstream & operator () () { return file_stream; }
+
+  private:
+    std::fstream file_stream;
+};
+
+
+template<class Ent,class Transm>
+void LexAnalyzer<Ent,Transm>::OutputResult(
+  const std::string & dy,const std::string & err) {
+  using namespace std;
+  
+  OFileStream dy_file(dy), err_file(err);
+  if(!dy_file().is_open()) {
+    cout << "Connot open file [ " << dy << " ]\n";
+    return;
+  }
+  if(!err_file().is_open()) {
+    cout << "Connot open file [ " << err << " ]\n";
+    return;
+  }
+
+  while(last_entry.first != 29) {
+      GetToken();
+      if(transmachine.IsErrorSt(last_entry)) {
+        err_file() << "__LINE__ " << srcfhandler.GetLines();
+        err_file() << " \" " << transmachine.EntryString(last_entry);
+        err_file() << " - " << transmachine.GetTStr() << " \"\n";
+      }
+      else {
+        //cout << transmachine.EntryString(last_entry) << '\n';
+        dy_file().write((const char *)&last_entry,sizeof(Ent));
+      }
+  }
+  /*
+  for_each(lex_iterator<Ent,Transm>(*this),
+    lex_iterator<Ent,Transm>(),[&](Ent &) {
+      GetToken();
+      cout << last_entry.first << '\n';
+      if(transmachine.IsErrorSt(last_entry)) {
+        err_file() << "__LINE__ " << srcfhandler.GetLines();
+        err_file() << " : " << transmachine.EntryString(last_entry);
+        err_file() << " - " << transmachine.GetTStr() << '\n';
+      }
+      else dy_file().write((const char *)&last_entry,sizeof(Ent));
+    });
+*/
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #include<iterator>
 

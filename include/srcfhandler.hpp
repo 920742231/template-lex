@@ -37,6 +37,11 @@ class SrcFHandler {
     //输出缓冲区第一个字符
     char GetChar();
 
+    //获取当前行号
+    int GetLines() const {
+        return lines;
+    }
+
     //是否达到文件尾，包括缓冲区也为空
     bool over() const;
 
@@ -64,6 +69,9 @@ class SrcFHandler {
     //标记当前缓冲区读取位置
     int bufpos;
 
+    //行号
+    int lines;
+
     //缓冲区保存字符数
     int buflen[1 << num];
 
@@ -82,11 +90,12 @@ class SrcFHandler {
 };
 
 #include"functions.hpp"
+#include<algorithm>
 
 //文件流打开文件，失败则退出。
 template<int num>
 SrcFHandler<num>::SrcFHandler(const char * path)
-:isend(false),curbuf(0),bufpos(0),srcfile(path){
+:isend(false),curbuf(0),bufpos(0),lines(1),srcfile(path){
     if(!srcfile.is_open()) err_open(path);
     //缓冲区大小为0，缓冲区空间暂不分配
     for(int i = 0;i < bufnums;++i) {
@@ -108,8 +117,8 @@ SrcFHandler<num>::SrcFHandler(std::string const & path)
 //释放new分配的缓冲区内存
 template<int num>
 SrcFHandler<num>::~SrcFHandler() {
-    for(int i = 0;i < bufnums;++i) 
-        if(databuf[i]) delete [] databuf[i];
+    std::for_each(databuf,databuf + bufnums,
+        [](char * buf) { if(buf) delete [] buf;});
 }
 
 //缓冲区是否为空
@@ -150,12 +159,15 @@ void SrcFHandler<num>::ReadToBuf(int i) {
 //回退一个字符，缓冲区读取指针减一
 template<int num>
 void SrcFHandler<num>::Retract() {
-    if(bufpos) --bufpos;
+    if(bufpos)
+    if(databuf[curbuf][--bufpos] == '\n')
+        --lines; 
 }
 
 //输出缓冲区第一个字符
 template<int num>
 char SrcFHandler<num>::GetChar() {
+    
     //检测是否有内容可读
     if(over()) return 0;
     //当前缓冲区读取到尾，则读文件到缓冲区
@@ -168,7 +180,9 @@ char SrcFHandler<num>::GetChar() {
         return GetChar();
     }
     else {
-        //否则可直接读取字符
+        //否则可直接读取字符,若读取到换行符则行号加一
+        if(databuf[curbuf][bufpos] == '\n')
+            ++lines;
         return databuf[curbuf][bufpos++];
     }
 }

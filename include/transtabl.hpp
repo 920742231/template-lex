@@ -31,15 +31,19 @@ class TransTabl {
     //判断一个状态是否是终止状态
     bool IsFinalSt(int) const;
 
-    //判断一个状态是否是异常状态
-    bool IsErrorSt(int) const;
+    //判断一个状态是否是异常状态,返回错误描述信息，或“normal”表示正常
+    bool IsErrorSt(int,int) const;
+    bool IsErrorSt(const SmbEnt & ent) const {
+      return IsErrorSt(ent.first,0);
+    }
+    SmbEnt GetErrorEnt(int,int) const;
 
     //需要回退的状态
     bool RetractSt(int) const;  
 
     //
     void PrintEnt(SmbEnt &) const;
-    
+    std::string EntryString(const SmbEnt & ent) const;
     enum {
       Init = 0,
       ID = 1,         //ID
@@ -74,41 +78,51 @@ class TransTabl {
     //禁止通过构造函数实例化
     TransTabl() = default;
 
-    //词法可推导的状态数
-    enum Stats {Nst = 22};
-
-    //状态装换表的状态数和接收的字符类别数
-    enum Trans {Ns = 11,Nc = 14};
-
-    
+    //标识符长度限制256字符
+    enum {
+      //状态数
+      Statsnum = 22,
+      //转换表列数  
+      Columns = 14,
+      //转换表行数
+      Rows = 11,
+      //非法字符错误
+      IllegalC = 31,
+      //冒号不匹配错误
+      Notmatch = 32,
+      //标识符长度溢出错误
+      Overflow = 33,
+      //标识符长度限制
+      Tokenlens = 10
+    };
 
     /*  实验要求词法的状态装换表，用二维度数组表示
      *  例如trans_tb[i][j]表示在状态i时接收j类
      *  字符所转变的下一状态
      */
-    const char trans_tb[Trans::Ns][Trans::Nc] {\
+    const char trans_tb[Rows][Columns] {\
       //state 0  - 初始状态，等待接收字符
-      { 0, 2, 4, 5, 6, 8,14,15,10,17,18,19, 0,Error},
+      { 0, 2, 4, 5, 6, 8,14,15,10,17,18,19, 0,IllegalC},
       //state 1  - ID符号的终止状态
-      { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,Error},
+      { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,IllegalC},
       //state 2  - ID符号的中间状态
-      { 2, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,Error},
+      { 2, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,IllegalC},
       //state 3  - INT符号的终止状态
-      { 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3,Error},
+      { 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3,IllegalC},
       //state 4  - INT符号的中间状态
-      { 4, 3, 4, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3,Error},
+      { 4, 3, 4, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3,IllegalC},
       //state 5  - '='的终止状态
-      { 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5,Error},
+      { 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5,IllegalC},
       //state 6  - 接收到字符'<'
-      { 6,11,11, 7,11, 9,11,11,11,11,11,11,11,Error},
+      { 6,11,11, 7,11, 9,11,11,11,11,11,11,11,IllegalC},
       //state 7  - '<='的终止状态
-      { 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,Error},
+      { 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,IllegalC},
       //state 8  - 接收到字符'>'
-      { 8,12,12,13,12,12,12,12,12,12,12,12,12,Error},
+      { 8,12,12,13,12,12,12,12,12,12,12,12,12,IllegalC},
       //state 9  - '<>'的终止状态
-      { 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9,Error},
+      { 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9,IllegalC},
        //state 10 - 接收到字符':'
-      {10,30,30,16,30,30,30,30,30,30,30,30,30,Error}};
+      {10,32,32,16,32,32,32,32,32,32,32,32,32,IllegalC}};
       //其余状态没有状态转变，因此不在表中出现
 
     //保留字与其编号对应

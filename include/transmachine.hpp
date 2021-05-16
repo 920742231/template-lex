@@ -38,13 +38,16 @@ class TransMachine {
 
     //当前状态是否是一个异常状态
     bool IsErrorSt() const {
-      return trans_tb.IsErrorSt(cur_state);
+      return trans_tb.IsErrorSt(cur_state,length);
     }
 
     bool IsInitial() const {
       return cur_state == trans_tb.Init;
     }
 
+    bool IsErrorSt(const Ent & ent) const {
+      return trans_tb.IsErrorSt(ent);
+    }
     //重置状态与字符串
     void Reset();
 
@@ -59,13 +62,21 @@ class TransMachine {
     Ent OverEnt() const {
       return trans_tb.GetSmbEnt(Tab::Over,cur_str);
     }
-
+    Ent ErrorEnt() const {
+      return trans_tb.GetErrorEnt(cur_state,length);
+    }
     //打印一个符号项
     void PrintEnt(Ent & ent) const {
       return trans_tb.PrintEnt(ent);
     }
     
+    std::string EntryString(const Ent & ent) const {
+      return trans_tb.EntryString(ent);
+    }
   private:
+
+    //当前读取字符串长度
+    int length;
 
     //当前状态
     St cur_state;
@@ -84,13 +95,14 @@ class TransMachine {
  */
 template<class Tab,class St,class Ent>
 TransMachine<Tab,St,Ent>::TransMachine(const Tab & tb)
-: trans_tb(tb),cur_state(Tab::Init) {}
+: length(0),trans_tb(tb),cur_state(Tab::Init) {}
 
 //  读取字符，进行状态转换。
 template<class Tab,class St,class Ent>
 void TransMachine<Tab,St,Ent>::StateTrans(char c) {
-  cur_state = trans_tb[cur_state][trans_tb.CharType(c)];
   cur_str.push_back(c);
+  ++length;
+  cur_state = trans_tb[cur_state][trans_tb.CharType(c)];
 }
 
 /*  重置状态转换机，当前状态设置为转换表的初始状态，
@@ -98,8 +110,9 @@ void TransMachine<Tab,St,Ent>::StateTrans(char c) {
  */
 template<class Tab,class St,class Ent>
 void TransMachine<Tab,St,Ent>::Reset() {
-  cur_state = trans_tb.Init;
   cur_str.clear();
+  length = 0;
+  cur_state = trans_tb.Init;
 }
 
 //回退字符

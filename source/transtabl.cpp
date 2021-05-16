@@ -24,26 +24,27 @@ TransTabl::SmbEnt TransTabl::GetSmbEnt(int st,
   switch(st) {
     case INT:   return SmbEnt(INT,
       (std::string *)(t_atol(symbol)));
-    case EQ:    return SmbEnt(EQ,NULL);      // =
-    case LE:    return SmbEnt(LE,NULL);      // <=
-    case NE:    return SmbEnt(NE,NULL);      // <>
-    case LT:    return SmbEnt(LT,NULL);      // <
-    case GT:    return SmbEnt(GT,NULL);      // >
-    case GE:    return SmbEnt(GE,NULL);      // >=
-    case SUB:   return SmbEnt(SUB,NULL);     // -
-    case MUL:   return SmbEnt(MUL,NULL);     // *
-    case ASSIGN:return SmbEnt(ASSIGN,NULL);  // :=
-    case LPAR:  return SmbEnt(LPAR,NULL);    // (
-    case RPAR:  return SmbEnt(RPAR,NULL);    // )
-    case SEM:   return SmbEnt(SEM,NULL);     // ;
-    case Over:  return SmbEnt(Over,NULL);    //Over
+    case EQ:    return SmbEnt(EQ,nullptr);      // =
+    case LE:    return SmbEnt(LE,nullptr);      // <=
+    case NE:    return SmbEnt(NE,nullptr);      // <>
+    case LT:    return SmbEnt(LT,nullptr);      // <
+    case GT:    return SmbEnt(GT,nullptr);      // >
+    case GE:    return SmbEnt(GE,nullptr);      // >=
+    case SUB:   return SmbEnt(SUB,nullptr);     // -
+    case MUL:   return SmbEnt(MUL,nullptr);     // *
+    case ASSIGN:return SmbEnt(ASSIGN,nullptr);  // :=
+    case LPAR:  return SmbEnt(LPAR,nullptr);    // (
+    case RPAR:  return SmbEnt(RPAR,nullptr);    // )
+    case SEM:   return SmbEnt(SEM,nullptr);     // ;
+    case Over:  return SmbEnt(Over,nullptr);    //Over
+    case Error: return SmbEnt(Error,nullptr);   //Error
     default:    break;
   }
 
   //否则,如果是保留字，则直接返回保留字编号
   iter = smbtabl.find(symbol);
   if(iter != smbtabl.end()) 
-    return SmbEnt(iter->second,NULL);
+    return SmbEnt(iter->second,nullptr);
 
   //否则，则表示此符号是一个标识符
   return SmbEnt(st,new std::string(symbol));
@@ -77,10 +78,35 @@ bool TransTabl::IsFinalSt(int st) const {
   return st > 10 || st % 2;
 }
 
-//判断一个状态是否是异常状态
-bool TransTabl::IsErrorSt(int st) const {
-  //符号表中编号为Error的状态，表示有错误出现
-  return st == Error;
+//判断状态是否是一个异常状态
+bool 
+TransTabl::IsErrorSt(int st,int len) const {
+  return len > Tokenlens || st == Overflow || \
+    st == IllegalC || st == Notmatch;
+}
+
+//  输出异常提示信息，否则返回string {0}表示正常
+TransTabl::SmbEnt 
+TransTabl::GetErrorEnt(int st,int len) const {
+  using namespace std;
+  
+  //标识符长度溢出
+  if(len > Tokenlens) return make_pair(Overflow,new \
+    string {"Overflow of declaration length(limit 256)"});
+  switch (st) {
+    //非法字符
+    case IllegalC:
+      return make_pair(IllegalC,new string {"Illegal character"});
+    //冒号不匹配
+    case Notmatch:
+      return make_pair(Notmatch,new string {R"(Not matching for single ':')"});
+    case Overflow:
+       return make_pair(Overflow,new \
+        string {"Overflow of declaration length(limit 256)"});
+    //非异常状态
+    default:
+      return make_pair(0,reinterpret_cast<string *>(0));
+  }
 }
 
 /*
@@ -88,13 +114,14 @@ bool TransTabl::IsErrorSt(int st) const {
  *  退一个字符。
  */
 bool TransTabl::RetractSt(int st) const {
-  /*  需要回退的状态有四个，分别是
+  /*  需要回退的状态有五个，分别是
    *  1.标识符（包括保留字）
    *  2.整型数字
    *  3.<
    *  4.>
+   *  5.:[c]
    */
-  if(st==1 || st==3 || st==11 || st==12)
+  if(st==1 || st==3 || st==11 || st==12 || st == Notmatch)
     return true;
   else return false;
 }
@@ -102,56 +129,72 @@ bool TransTabl::RetractSt(int st) const {
 //打印一个符号项
 void TransTabl::PrintEnt(SmbEnt & ent) const {
   using namespace std;
-  cout << setw(2) << ent.first << " : ";
+  cout << EntryString(ent) << '\n';
+}
+
+#include<sstream>
+
+std::string 
+TransTabl::EntryString(const SmbEnt & ent) const {
+  using namespace std;
+  ostringstream outs;
+
+  outs << setw(2) << ent.first << " : ";
   switch(ent.first) {
-  case Over:      cout << "FILEEND\n";
+  case ID:        outs << *ent.second;
                   break;
-  case ID:        cout << *ent.second << "\n";
+  case INT:       outs << (long)ent.second;
                   break;
-  case INT:       cout << (long)ent.second << "\n";
+  case EQ:        outs << "=";
                   break;
-  case EQ:        cout << "=\n";
+  case LE:        outs << "<=";
                   break;
-  case LE:        cout << "<=\n";
+  case NE:        outs << "<>";
                   break;
-  case NE:        cout << "<>\n";
+  case LT:        outs << "<";
                   break;
-  case LT:        cout << "<\n";
+  case GT:        outs << ">";
                   break;
-  case GT:        cout << ">\n";
+  case GE:        outs << ">=";
                   break;
-  case GE:        cout << ">=\n";
+  case SUB:       outs << "-";
                   break;
-  case SUB:       cout << "-\n";
+  case MUL:       outs << "*";
                   break;
-  case MUL:       cout << "*\n";
+  case ASSIGN:    outs << ":=";
                   break;
-  case ASSIGN:    cout << ":=\n";
+  case LPAR:      outs << "(";
                   break;
-  case LPAR:      cout << "(\n";
+  case RPAR:      outs << ")";
                   break;
-  case RPAR:      cout << ")\n";
+  case SEM:       outs << ";";
                   break;
-  case SEM:       cout << ";\n";
+  case BEGIN:     outs << "BEGIN";
                   break;
-  case BEGIN:     cout << "BEGIN\n";
+  case END:       outs << "END";
                   break;
-  case END:       cout << "END\n";
+  case INTEGER:   outs << "INTEGER";
                   break;
-  case INTEGER:   cout << "INTEGER\n";
+  case IF:        outs << "IF";
                   break;
-  case IF:        cout << "IF\n";
+  case THEN:      outs << "THEN";
                   break;
-  case THEN:      cout << "THEN\n";
+  case ELSE:      outs << "ELSE";
                   break;
-  case ELSE:      cout << "ELSE\n";
+  case FUNCTION:  outs << "FUNCTION";
                   break;
-  case FUNCTION:  cout << "FUNCTION\n";
+  case READ:      outs << "READ";
                   break;
-  case READ:      cout << "READ\n";
+  case WRITE:     outs << "WRITE";
                   break;
-  case WRITE:     cout << "WRITE\n";
+  case Over:      outs << "EOF";
                   break;
+  case Error:
+  case IllegalC:
+  case Notmatch:
+  case Overflow:  outs << *ent.second;
   default:        break;
   }
+
+  return outs.str();
 }

@@ -10,7 +10,7 @@ int main() {
     using TransM = TransMachine<TransTabl,int,SmbEnt>;
     
     SmbEnt smbent;
-    std::string sname;
+    std::string sname,dname,errname;
 
     std::cout << "Source File name : ";
 
@@ -18,8 +18,11 @@ int main() {
 
     LexAnalyzer<SmbEnt,TransM> lexanal(sname,TransTabl::Get());
 
-    t_atol(std::string("100"));
-  /*  
+    std::cin >> dname;
+    std::cin >> errname;
+
+    lexanal.OutputResult(dname,errname);
+    /*
     smbent.first = 0;
     while(smbent.first != TransTabl::Over) {
         smbent = lexanal.GetToken();
@@ -27,14 +30,15 @@ int main() {
         if(smbent.first == 1) delete smbent.second;
     }
 
-   // */
-  ///*
+   */
+  /*
     std::for_each(lex_iterator<SmbEnt,TransM>(lexanal),
         lex_iterator<SmbEnt,TransM>(),
         [&lexanal](SmbEnt & smbent) {
             lexanal.PrintEnt(smbent);
+            if(smbent.first == 1) delete smbent.second;
         }
     );
-//*/
+*/
     return 0;
 }
