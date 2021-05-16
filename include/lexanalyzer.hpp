@@ -3,6 +3,9 @@ _Pragma("once");
 #include"srcfhandler.hpp"
 #include"functions.hpp"
 
+#include<vector>
+#include<iterator>
+
 template<class Ent,
          class Transm>
 class LexAnalyzer {
@@ -24,20 +27,76 @@ class LexAnalyzer {
     //获取下一个符号
     const Ent & GetToken();
 
-    //打印符号条目信息
-    void PrintEnt(Ent & ent) const {
-      return transmachine.PrintEnt(ent);
+    static std::string EntryString(const Ent & ent) {
+      return Transm::EntryString(ent);
     }
 
-    void OutputResult(const std::string &,const std::string &);
-    void OutputResult(const char * dy,const char * err) {
+    //对源文件进行完整的词法分析，二元式输出到指定文件，错误词法输出到指定文件
+    bool OutputResult(const std::string &,const std::string &);
+    
+    bool OutputResult(const char * dy,const char * err) {
       return OutputResult(std::string(dy),std::string(err));
     }
+
+  //词法分析器的迭代器，提供使用迭代器推动词法分析的能力
+  class lex_iterator 
+  : public std::iterator<std::input_iterator_tag,Ent> {
+
+    using lex_type = LexAnalyzer<Ent,Transm>;
+    public:
+  
+      //  空构造函数，生成迭代器的结束位置
+      lex_iterator() 
+      : lexanalyzer(0),current_ent(Ent()) {}
+
+      //  生成指定词法分析器的迭代器
+      lex_iterator(lex_type & lexanal)
+      : lexanalyzer(&lexanal) {
+        current_ent = lexanalyzer->GetToken();
+      }
+
+      //
+      lex_iterator & operator ++ () {
+        if(lexanalyzer == 0) {
+          current_ent = Ent();
+          return *this;
+        }
+        current_ent = lexanalyzer->GetToken();
+        if(lexanalyzer->Isover()) 
+          lexanalyzer = 0;
+        return *this;
+      }
+
+      lex_iterator & operator ++ (int) {
+        decltype(*this) tmp = this;
+        ++*this;
+        return this;
+      }
+  
+      Ent & operator * () {
+        return current_ent;
+      }
+
+      const lex_type * LexAddress () {
+        return lexanalyzer;
+      }
+
+      bool operator != (lex_iterator & iter) {
+        return lexanalyzer != iter.LexAddress() \
+          || current_ent != *iter;
+      }
+  
+    private:
+      Ent current_ent;
+      lex_type * lexanalyzer;
+  };
+
 
   private:
 
     //上一个状态的二元式
     Ent last_entry;
+
     //状态转换机
     Transm transmachine;
 
@@ -49,16 +108,19 @@ class LexAnalyzer {
 
 };
 
-//控制状态转换机进行状态转换，识别一个符号并输出符号项
+//控制状态转换机进行状态转换，识别一个符号并输出二元式
 template<class Ent,class Transm>
 const Ent & LexAnalyzer<Ent,Transm>::GetToken() {
-  
+
   //文件处理结束，输出结束标志项
   if(over) {
     last_entry = transmachine.OverEnt();
     return last_entry;
   };
+
+  //分析前重置状态转换机
   transmachine.Reset();
+
   //除去符号开头的空白字符
   srcfhandler.IgnoreSpace();
 
@@ -66,41 +128,49 @@ const Ent & LexAnalyzer<Ent,Transm>::GetToken() {
   while(!transmachine.IsFinalSt() && !srcfhandler.over())
     transmachine.StateTrans(srcfhandler.GetChar());
   
-  
+  //当前状态是一个终止状态，则可以输出二元式，或者产生了异常，输出异常
+  //状态的二元式。
   if(transmachine.IsFinalSt()) {
     //如果达到异常状态，进行处理
     if(transmachine.IsErrorSt()) {
       last_entry = transmachine.ErrorEnt();
       if(transmachine.Retract()) srcfhandler.Retract();
     }
+    //否则是正常终止状态
     else {
       if(transmachine.Retract()) srcfhandler.Retract();
       last_entry = transmachine.GetEnt();
     }
   }
-  //file end
+  
+  //循环结束于源文件读取结束
   else {
+    //状态机处于初始状态，说明源文件一分析结束
     if(transmachine.IsInitial()) {
       over = true;
       last_entry = transmachine.OverEnt();
+      return last_entry;
     }
+    //否则，若当前状态不是终止状态，输入一个空格保证状态完成转换
+    if(!transmachine.IsFinalSt()) 
+      transmachine.StateTrans(' ');
+    //转换后达到异常状态，说明当前符号不是词法接收的符号
+    if(transmachine.IsErrorSt())
+      last_entry = transmachine.ErrorEnt();
+    //转换达到正常结束状态，表示符号被接收，回退最后加入的空格
     else {
-      if(!transmachine.IsFinalSt()) 
-        transmachine.StateTrans(' ');
-      if(transmachine.IsErrorSt())
-        last_entry = transmachine.ErrorEnt();
-      else {
-        transmachine.Retract();
-        last_entry = transmachine.GetEnt();
-      }
+      transmachine.Retract();
+      last_entry = transmachine.GetEnt();
     }
   }
 
   return last_entry;
 }
 
-template<class Ent,class Transm> class lex_iterator;
 
+/*  简单的文件流资源类，利用RAII机制获取文件流，避免复杂的
+ *  错误处理。
+ */
 class OFileStream {
   public:
     OFileStream() = default;
@@ -116,125 +186,37 @@ class OFileStream {
 };
 
 
+/*  输出词法分析结果到指定文件中。  */
 template<class Ent,class Transm>
-void LexAnalyzer<Ent,Transm>::OutputResult(
+bool LexAnalyzer<Ent,Transm>::OutputResult(
   const std::string & dy,const std::string & err) {
   using namespace std;
   
-  OFileStream dy_file(dy), err_file(err);
-  if(!dy_file().is_open()) {
+  //dyd_file 保存二元式的文件，err_file 保存错误信息的文件
+  OFileStream dyd_file(dy), err_file(err);
+  //任一文件打开失败则不能继续进行，函数退出
+  if(!dyd_file().is_open()) {
     cout << "Connot open file [ " << dy << " ]\n";
-    return;
+    return false;
   }
   if(!err_file().is_open()) {
     cout << "Connot open file [ " << err << " ]\n";
-    return;
+    return false;
   }
 
-  while(last_entry.first != 29) {
-      GetToken();
-      if(transmachine.IsErrorSt(last_entry)) {
-        err_file() << "__LINE__ " << srcfhandler.GetLines();
-        err_file() << " \" " << transmachine.EntryString(last_entry);
-        err_file() << " - " << transmachine.GetTStr() << " \"\n";
-      }
-      else {
-        //cout << transmachine.EntryString(last_entry) << '\n';
-        dy_file().write((const char *)&last_entry,sizeof(Ent));
-      }
+  //表示异常的二元式输出字符串信息到err_file中，
+  //正常的二元式输出二元式二进制数据到dyd_file中
+  while(last_entry.first != transmachine.Over) {
+    GetToken();
+    if(transmachine.IsErrorSt(last_entry)) {
+      err_file() << "***LINE:" << srcfhandler.GetLines();
+      err_file() << " (\" " << transmachine.EntryString(last_entry);
+      err_file() << " - " << transmachine.GetTStr() << " \")\n";
+    }
+    else dyd_file() << EntryString(last_entry) << '\n';
+
   }
-  /*
-  for_each(lex_iterator<Ent,Transm>(*this),
-    lex_iterator<Ent,Transm>(),[&](Ent &) {
-      GetToken();
-      cout << last_entry.first << '\n';
-      if(transmachine.IsErrorSt(last_entry)) {
-        err_file() << "__LINE__ " << srcfhandler.GetLines();
-        err_file() << " : " << transmachine.EntryString(last_entry);
-        err_file() << " - " << transmachine.GetTStr() << '\n';
-      }
-      else dy_file().write((const char *)&last_entry,sizeof(Ent));
-    });
-*/
+
+  return true;
+
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#include<iterator>
-
-template<typename Ent,
-         typename Transm>
-class lex_iterator 
-: public std::iterator<std::input_iterator_tag,Ent> {
-
-  using lex_type = LexAnalyzer<Ent,Transm>;
-  public:
-  
-    //  空构造函数，生成迭代器的结束位置
-    lex_iterator() 
-    : lexanalyzer(0),current_ent(Ent()) {}
-
-    //  生成指定词法分析器的迭代器
-    lex_iterator(lex_type & lexanal)
-    : lexanalyzer(&lexanal) {
-      current_ent = lexanalyzer->GetToken();
-    }
-
-    //
-    lex_iterator & operator ++ () {
-      if(lexanalyzer == 0) {
-        current_ent = Ent();
-        return *this;
-      }
-      current_ent = lexanalyzer->GetToken();
-      if(lexanalyzer->Isover()) 
-        lexanalyzer = 0;
-      return *this;
-    }
-
-    lex_iterator & operator ++ (int) {
-      decltype(*this) tmp = this;
-      ++*this;
-      return this;
-    }
-  
-    Ent & operator * () {
-      return current_ent;
-    }
-
-    const lex_type * LexAddress () {
-      return lexanalyzer;
-    }
-
-    bool operator != (lex_iterator<Ent,Transm> & iter) {
-      return lexanalyzer != iter.LexAddress() \
-        || current_ent != *iter;
-    }
-  
-  private:
-    Ent current_ent;
-    lex_type * lexanalyzer;
-};

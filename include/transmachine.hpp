@@ -2,14 +2,26 @@ _Pragma("once");
 
 #include<string>
 
+/*
+ *  状态转换机模板，模板参数有三个，分别是：
+ *    Tab : 状态转换表类型
+ *    St  : 状态类型
+ *    Ent : 二元式类型 
+ * 
+ *  可以对不同的状态转换表进行状态转换，要求转换表支持[][]运算符，
+ *  提供状态判断的函数，构建二元式的函数，以及将二元式转换为字符串
+ *  的函数。由于转换表与特定词法关联，因此上述功能最好由转换表提供，
+ *  而不是有转换机提供，从而达到更好的泛型化。
+ *  
+ *  转换机的核心功能是读取一个字符，查询转换表进行状态转换，并将读
+ *  取的字符串保存，记录字符串长度。
+ */
 template<typename Tab,
          typename St,
          typename Ent>
 class TransMachine {
 
   public:
-
-    using SmbEnt = std::pair<int,std::string *>;
 
     //使用状态转换表构造转换机实例
     TransMachine(const Tab & trans_tb);
@@ -19,6 +31,7 @@ class TransMachine {
 
     TransMachine & operator = (const TransMachine &) = delete;
 
+    enum { Init = Tab::Init,Over = Tab::Over };
 
   public:
 
@@ -62,16 +75,13 @@ class TransMachine {
     Ent OverEnt() const {
       return trans_tb.GetSmbEnt(Tab::Over,cur_str);
     }
+    //异常状态的二元式
     Ent ErrorEnt() const {
       return trans_tb.GetErrorEnt(cur_state,length);
     }
-    //打印一个符号项
-    void PrintEnt(Ent & ent) const {
-      return trans_tb.PrintEnt(ent);
-    }
-    
-    std::string EntryString(const Ent & ent) const {
-      return trans_tb.EntryString(ent);
+    //二元式的字符串
+    static std::string EntryString(const Ent & ent) {
+      return Tab::EntryString(ent);
     }
   private:
 

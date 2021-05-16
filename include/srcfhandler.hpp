@@ -69,7 +69,7 @@ class SrcFHandler {
     //标记当前缓冲区读取位置
     int bufpos;
 
-    //行号
+    //行号，标记当前字符所在行
     int lines;
 
     //缓冲区保存字符数
@@ -114,7 +114,7 @@ SrcFHandler<num>::SrcFHandler(std::string const & path)
     }
 }
 */
-//释放new分配的缓冲区内存
+//析构函数需要释放new分配的缓冲区内存
 template<int num>
 SrcFHandler<num>::~SrcFHandler() {
     std::for_each(databuf,databuf + bufnums,

@@ -12,7 +12,7 @@ const TransTabl & TransTabl::Get() {
 }
 
 /*
- *  使用状态标号和符号字符串构建符号项，主要是对于
+ *  使用状态标号和符号字符串构建二元式，主要是对于
  *  关键字的处理，如begin、end等。
  */
 TransTabl::SmbEnt TransTabl::GetSmbEnt(int st,
@@ -72,7 +72,9 @@ int TransTabl::CharType(char c) const {
   }
 }
 
-//判断一个状态是否是终止状态，终止状态对应符号被识别
+/*  判断一个状态是否是终止状态，终止状态对应符号被识别,
+ *  或者当前状态达到异常状态。
+ */
 bool TransTabl::IsFinalSt(int st) const {
   //终止状态为奇数编号或大于10的编号
   return st > 10 || st % 2;
@@ -88,6 +90,7 @@ TransTabl::IsErrorSt(int st,int len) const {
 //  输出异常提示信息，否则返回string {0}表示正常
 TransTabl::SmbEnt 
 TransTabl::GetErrorEnt(int st,int len) const {
+  
   using namespace std;
   
   //标识符长度溢出
@@ -100,6 +103,7 @@ TransTabl::GetErrorEnt(int st,int len) const {
     //冒号不匹配
     case Notmatch:
       return make_pair(Notmatch,new string {R"(Not matching for single ':')"});
+    //标识符长度溢出
     case Overflow:
        return make_pair(Overflow,new \
         string {"Overflow of declaration length(limit 256)"});
@@ -116,27 +120,24 @@ TransTabl::GetErrorEnt(int st,int len) const {
 bool TransTabl::RetractSt(int st) const {
   /*  需要回退的状态有五个，分别是
    *  1.标识符（包括保留字）
-   *  2.整型数字
-   *  3.<
-   *  4.>
-   *  5.:[c]
+   *  3.整型数字
+   *  11.<
+   *  12.>
+   *  32.不匹配的冒号
    */
-  if(st==1 || st==3 || st==11 || st==12 || st == Notmatch)
+  if(st==1 || st==3 || st==11 || st==12 || st == 32)
     return true;
   else return false;
 }
 
-//打印一个符号项
-void TransTabl::PrintEnt(SmbEnt & ent) const {
-  using namespace std;
-  cout << EntryString(ent) << '\n';
-}
-
 #include<sstream>
 
+//二元式转换为字符串
 std::string 
-TransTabl::EntryString(const SmbEnt & ent) const {
+TransTabl::EntryString(const SmbEnt & ent) {
+  
   using namespace std;
+  
   ostringstream outs;
 
   outs << setw(2) << ent.first << " : ";

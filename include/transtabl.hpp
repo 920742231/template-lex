@@ -25,25 +25,28 @@ class TransTabl {
     //使用状态和符号构造符号项
     SmbEnt GetSmbEnt(int,const std::string &) const;
 
+    //
+    SmbEnt GetErrorEnt(int,int) const;
+
     //字符的类别，便于使用状态表进行转换
     int CharType(char) const;
 
     //判断一个状态是否是终止状态
     bool IsFinalSt(int) const;
 
-    //判断一个状态是否是异常状态,返回错误描述信息，或“normal”表示正常
+    //判断一个状态是否是异常状态,
     bool IsErrorSt(int,int) const;
+
     bool IsErrorSt(const SmbEnt & ent) const {
       return IsErrorSt(ent.first,0);
     }
-    SmbEnt GetErrorEnt(int,int) const;
 
     //需要回退的状态
     bool RetractSt(int) const;  
+    
+    //二元式转换为字符串
+    static std::string EntryString(const SmbEnt & ent);
 
-    //
-    void PrintEnt(SmbEnt &) const;
-    std::string EntryString(const SmbEnt & ent) const;
     enum {
       Init = 0,
       ID = 1,         //ID

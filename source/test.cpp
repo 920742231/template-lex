@@ -4,24 +4,26 @@
 #include"transtabl.hpp"
 #include"lexanalyzer.hpp"
 #include"transmachine.hpp"
+
+using SmbEnt = TransTabl::SmbEnt;
+
 int main() {
 
+    using namespace std;
     using SmbEnt = TransTabl::SmbEnt;
     using TransM = TransMachine<TransTabl,int,SmbEnt>;
+    using this_lexcal = LexAnalyzer<SmbEnt,TransM>;
     
-    SmbEnt smbent;
-    std::string sname,dname,errname;
+    string sname;
+    vector<SmbEnt> v;
+    cout << "Source File name : ";
 
-    std::cout << "Source File name : ";
+    cin >> sname;
 
-    std::cin >> sname;
+    this_lexcal lexanal(sname,TransTabl::Get());
 
-    LexAnalyzer<SmbEnt,TransM> lexanal(sname,TransTabl::Get());
+    lexanal.OutputResult("dyd.dyd","err.err");
 
-    std::cin >> dname;
-    std::cin >> errname;
-
-    lexanal.OutputResult(dname,errname);
     /*
     smbent.first = 0;
     while(smbent.first != TransTabl::Over) {
@@ -32,10 +34,10 @@ int main() {
 
    */
   /*
-    std::for_each(lex_iterator<SmbEnt,TransM>(lexanal),
-        lex_iterator<SmbEnt,TransM>(),
+    std::for_each(this_lexcal::lex_iterator(lexanal),
+        this_lexcal::lex_iterator(),
         [&lexanal](SmbEnt & smbent) {
-            lexanal.PrintEnt(smbent);
+            std::cout << lexanal.EntryString(smbent) << '\n';
             if(smbent.first == 1) delete smbent.second;
         }
     );
