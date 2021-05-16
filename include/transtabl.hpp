@@ -96,7 +96,7 @@ class TransTabl {
       //标识符长度溢出错误
       Overflow = 33,
       //标识符长度限制
-      Tokenlens = 10
+      Tokenlens = 16
     };
 
     /*  实验要求词法的状态装换表，用二维度数组表示
