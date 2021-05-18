@@ -8,7 +8,7 @@ class TransTabl {
 
   public:
 
-    using SmbEnt = std::pair<int,std::string *>;
+    using SmbEnt = std::pair<std::string,int>;
     //
     static const TransTabl & Get();
 
@@ -38,7 +38,7 @@ class TransTabl {
     bool IsErrorSt(int,int) const;
 
     bool IsErrorSt(const SmbEnt & ent) const {
-      return IsErrorSt(ent.first,0);
+      return IsErrorSt(ent.second,0);
     }
 
     //需要回退的状态

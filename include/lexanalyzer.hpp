@@ -206,7 +206,7 @@ bool LexAnalyzer<Ent,Transm>::OutputResult(
 
   //表示异常的二元式输出字符串信息到err_file中，
   //正常的二元式输出二元式二进制数据到dyd_file中
-  while(last_entry.first != transmachine.Over) {
+  while(last_entry.second != transmachine.Over) {
     GetToken();
     if(transmachine.IsErrorSt(last_entry)) {
       err_file() << "***LINE:" << srcfhandler.GetLines();

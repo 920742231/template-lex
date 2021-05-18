@@ -18,36 +18,37 @@ const TransTabl & TransTabl::Get() {
 TransTabl::SmbEnt TransTabl::GetSmbEnt(int st,
   const std::string & symbol) const {
   
+  using namespace std;
+
   decltype(smbtabl.end()) iter;
 
   //当前符号是一个操作符或界符，直接返回符号编号
   switch(st) {
-    case INT:   return SmbEnt(INT,
-      (std::string *)(t_atol(symbol)));
-    case EQ:    return SmbEnt(EQ,nullptr);      // =
-    case LE:    return SmbEnt(LE,nullptr);      // <=
-    case NE:    return SmbEnt(NE,nullptr);      // <>
-    case LT:    return SmbEnt(LT,nullptr);      // <
-    case GT:    return SmbEnt(GT,nullptr);      // >
-    case GE:    return SmbEnt(GE,nullptr);      // >=
-    case SUB:   return SmbEnt(SUB,nullptr);     // -
-    case MUL:   return SmbEnt(MUL,nullptr);     // *
-    case ASSIGN:return SmbEnt(ASSIGN,nullptr);  // :=
-    case LPAR:  return SmbEnt(LPAR,nullptr);    // (
-    case RPAR:  return SmbEnt(RPAR,nullptr);    // )
-    case SEM:   return SmbEnt(SEM,nullptr);     // ;
-    case Over:  return SmbEnt(Over,nullptr);    //Over
-    case Error: return SmbEnt(Error,nullptr);   //Error
+    case INT:   return SmbEnt(string {symbol},INT);
+    case EQ:    return SmbEnt(string {},EQ);      // =
+    case LE:    return SmbEnt(string {},LE);      // <=
+    case NE:    return SmbEnt(string {},NE);      // <>
+    case LT:    return SmbEnt(string {},LT);      // <
+    case GT:    return SmbEnt(string {},GT);      // >
+    case GE:    return SmbEnt(string {},GE);      // >=
+    case SUB:   return SmbEnt(string {},SUB);     // -
+    case MUL:   return SmbEnt(string {},MUL);     // *
+    case ASSIGN:return SmbEnt(string {},ASSIGN);  // :=
+    case LPAR:  return SmbEnt(string {},LPAR);    // (
+    case RPAR:  return SmbEnt(string {},RPAR);    // )
+    case SEM:   return SmbEnt(string {},SEM);     // ;
+    case Over:  return SmbEnt(string {},Over);    //Over
+    case Error: return SmbEnt(string {},Error);   //Error
     default:    break;
   }
 
   //否则,如果是保留字，则直接返回保留字编号
   iter = smbtabl.find(symbol);
   if(iter != smbtabl.end()) 
-    return SmbEnt(iter->second,nullptr);
+    return SmbEnt(string {},iter->second);
 
   //否则，则表示此符号是一个标识符
-  return SmbEnt(st,new std::string(symbol));
+  return SmbEnt(string(symbol),st);
 }
 
 /*
@@ -94,22 +95,22 @@ TransTabl::GetErrorEnt(int st,int len) const {
   using namespace std;
   
   //标识符长度溢出
-  if(len > Tokenlens) return make_pair(Overflow,new \
-    string {"Overflow of declaration length(limit 256)"});
+  if(len > Tokenlens) return make_pair(
+    string {"Overflow of declaration length(limit 256)"},Overflow);
   switch (st) {
     //非法字符
     case IllegalC:
-      return make_pair(IllegalC,new string {"Illegal character"});
+      return make_pair(string {"Illegal character"},IllegalC);
     //冒号不匹配
     case Notmatch:
-      return make_pair(Notmatch,new string {R"(Not matching for single ':')"});
+      return make_pair(string {R"(Not matching for single ':')"},IllegalC);
     //标识符长度溢出
     case Overflow:
-       return make_pair(Overflow,new \
-        string {"Overflow of declaration length(limit 256)"});
+       return make_pair(
+        string {"Overflow of declaration length(limit 256)"},Overflow);
     //非异常状态
     default:
-      return make_pair(0,reinterpret_cast<string *>(0));
+      return make_pair(string {},0);
   }
 }
 
@@ -140,11 +141,12 @@ TransTabl::EntryString(const SmbEnt & ent) {
   
   ostringstream outs;
 
-  outs << setw(2) << ent.first << " : ";
-  switch(ent.first) {
-  case ID:        outs << *ent.second;
+  outs << setw(16);
+
+  switch(ent.second) {
+  case ID:        outs << ent.first;
                   break;
-  case INT:       outs << (long)ent.second;
+  case INT:       outs << ent.first;
                   break;
   case EQ:        outs << "=";
                   break;
@@ -193,9 +195,11 @@ TransTabl::EntryString(const SmbEnt & ent) {
   case Error:
   case IllegalC:
   case Notmatch:
-  case Overflow:  outs << *ent.second;
+  case Overflow:  outs << ent.first;
   default:        break;
   }
 
+  outs << ':' << setw(2) << ent.second;
+  
   return outs.str();
 }
