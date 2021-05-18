@@ -1,3 +1,4 @@
+#include<regex>
 #include<string>
 #include<iostream>
 #include<algorithm>
@@ -14,16 +15,22 @@ int main() {
     using TransM = TransMachine<TransTabl,int,SmbEnt>;
     using this_lexcal = LexAnalyzer<SmbEnt,TransM>;
     
-    string sname;
-    vector<SmbEnt> v;
+    regex pattern("([^.]+)[.]pas$");
+    string dyd {"$1.dyd"} , err {"$1.err"};
+    string path;
+    
     cout << "Source File name : ";
+    cin >> path;
 
-    cin >> sname;
+    if(regex_match(path,pattern)) {
+        this_lexcal lexanal(path,TransTabl::Get());
+        lexanal.OutputResult(regex_replace(path,pattern,dyd),
+            regex_replace(path,pattern,err));
+    }
+    else 
+        cout << R"(Illegal file name [")" << path << R"("])" << '\n';
 
-    this_lexcal lexanal(sname,TransTabl::Get());
-
-    lexanal.OutputResult("dyd.dyd","err.err");
-
+    return 0;
     /*
     smbent.first = 0;
     while(smbent.first != TransTabl::Over) {
@@ -42,5 +49,4 @@ int main() {
         }
     );
 */
-    return 0;
 }
