@@ -15,7 +15,7 @@ int main() {
     using TransM = TransMachine<TransTabl,int,SmbEnt>;
     using this_lexcal = LexAnalyzer<SmbEnt,TransM>;
     
-    regex pattern("([^.]+)[.]pas$");
+    regex pattern("([^.]+)[.]pas");
     string dyd {"$1.dyd"} , err {"$1.err"};
     string path;
     

@@ -199,7 +199,7 @@ TransTabl::EntryString(const SmbEnt & ent) {
   default:        break;
   }
 
-  outs << ':' << setw(2) << ent.second;
+  outs << ':' << setw(2) << setfill('0') << ent.second;
   
   return outs.str();
 }
